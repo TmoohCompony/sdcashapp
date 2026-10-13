@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SD cash | عجلة الحظ - مسابقات سودانية</title>
+<style>
+  :root{
+    --green:#0e7a3c;
+    --green-dark:#075027;
+    --green-light:#12a352;
+    --gold:#e5b93c;
+    --gold-dark:#a8801d;
+    --white:#ffffff;
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+
+  body{
+    font-family:"Tahoma","Segoe UI",system-ui,-apple-system,sans-serif;
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 50% -10%, #149152 0%, #063d1e 55%, #03210f 100%) fixed;
+    color:#fff;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:18px 14px 46px;
+    overflow-x:hidden;
+  }
+
+  /* ===== الهيدر ===== */
+  .app-header{ text-align:center; margin-bottom:14px; }
+
+  .logo{
+    display:inline-flex;
+    align-items:center;
+    gap:2px;
+    font-weight:800;
+    font-size:38px;
+    letter-spacing:-1px;
+    line-height:1;
+    filter:drop-shadow(0 4px 10px rgba(0,0,0,.45));
+  }
+  .logo-sd{
+    background:linear-gradient(180deg,#ffffff,#d8f3e3);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .logo-cash{
+    background:linear-gradient(180deg,#ffe27a,#e5b93c);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+
+  .tagline{
+    margin-top:8px;
+    font-size:13px;
+    color:#bfe6d0;
+    letter-spacing:.3px;
+  }
+
+  /* ===== بطاقة الرصيد ===== */
+  .balance{
+    width:100%;
+    max-width:400px;
+    background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:18px;
+    padding:12px 18px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:18px;
+    backdrop-filter:blur(6px);
+  }
+  .balance span{ font-size:13px; color:#c9ecd8; }
+  .balance strong{
+    font-size:20px;
+    color:var(--gold);
+    font-weight:800;
+  }
+  .balance .cur{ font-size:12px; color:#c9ecd8; margin-inline-start:4px; }
+
+  /* ===== العجلة ===== */
+  .wheel-wrap{
+    position:relative;
+    width:min(88vw, 380px);
+    aspect-ratio:1/1;
+    margin:6px auto 0;
+  }
+
+  .wheel-ring{
+    position:absolute; inset:-10px;
+    border-radius:50%;
+    background:conic-gradient(from 0deg,#ffe27a,#a8801d,#ffe27a,#a8801d,#ffe27a);
+    box-shadow:0 0 0 4px rgba(0,0,0,.25), 0 18px 40px rgba(0,0,0,.5);
+  }
+
+  canvas{
+    position:relative;
+    width:100%; height:100%;
+    display:block;
+    border-radius:50%;
+    z-index:2;
+  }
+
+  /* المؤشر (السهم) */
+  .pointer{
+    position:absolute;
+    top:-14px; left:50%;
+    transform:translateX(-50%);
+    width:0; height:0;
+    border-left:16px solid transparent;
+    border-right:16px solid transparent;
+    border-top:34px solid var(--gold);
+    filter:drop-shadow(0 3px 6px rgba(0,0,0,.5));
+    z-index:5;
+  }
+  .pointer::after{
+    content:"";
+    position:absolute;
+    left:-9px; top:-24px;
+    width:18px; height:18px;
+    border-radius:50%;
+    background:linear-gradient(180deg,#ffe27a,#e5b93c);
+    box-shadow:0 2px 6px rgba(0,0,0,.4);
+  }
+
+  /* الصرة الوسطى */
+  .hub{
+    position:absolute;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    width:23%; aspect-ratio:1/1;
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #ffffff, #dff3e7 60%, #b8ddc7);
+    border:4px solid var(--gold);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:800;
+    font-size:clamp(12px,3.6vw,17px);
+    color:var(--green-dark);
+    z-index:4;
+    box-shadow:0 6px 14px rgba(0,0,0,.35), inset 0 -3px 6px rgba(0,0,0,.12);
+    cursor:pointer;
+    user-select:none;
+  }
+  .hub:active{ transform:translate(-50%,-50%) scale(.95); }
+
+  /* ===== زر الدوران ===== */
+  .spin-btn{
+    margin-top:26px;
+    padding:16px 46px;
+    font-family:inherit;
+    font-size:20px;
+    font-weight:800;
+    color:#063d1e;
+    background:linear-gradient(180deg,#ffe27a,#e5b93c);
+    border:none;
+    border-radius:60px;
+    cursor:pointer;
+    box-shadow:0 6px 0 var(--gold-dark), 0 12px 26px rgba(0,0,0,.4);
+    transition:transform .12s ease, box-shadow .12s ease, filter .2s;
+  }
+  .spin-btn:hover:not(:disabled){ filter:brightness(1.06); }
+  .spin-btn:active:not(:disabled){
+    transform:translateY(5px);
+    box-shadow:0 1px 0 var(--gold-dark), 0 6px 14px rgba(0,0,0,.35);
+  }
+  .spin-btn:disabled{ opacity:.55; cursor:not-allowed; }
+
+  .hint{
+    margin-top:14px;
+    font-size:12px;
+    color:#9fd4b6;
+    text-align:center;
+  }
+
+  /* ===== سجل الجوائز ===== */
+  .history{
+    width:100%;
+    max-width:400px;
+    margin-top:26px;
+    background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.13);
+    border-radius:18px;
+    padding:14px 16px;
+  }
+  .history h3{
+    font-size:14px;
+    font-weight:700;
+    color:#d7f2e3;
+    margin-bottom:10px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .history ul{ list-style:none; display:flex; flex-direction:column; gap:7px; }
+  .history li{
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:13px;
+    background:rgba(0,0,0,.18);
+    border-radius:10px;
+    padding:8px 12px;
+    color:#e6f7ee;
+  }
+  .history li b{ color:var(--gold); font-weight:700; }
+  .history .empty{
+    font-size:12px; color:#8fc3a8; text-align:center; padding:8px 0;
+  }
+
+  /* ===== النافذة المنبثقة ===== */
+  .overlay{
+    position:fixed; inset:0;
+    background:rgba(2,20,10,.85);
+    backdrop-filter:blur(5px);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:22px;
+    z-index:99;
+  }
+  .overlay.show{ display:flex; animation:fadeIn .25s ease; }
+
+  @keyframes fadeIn{ from{opacity:0} to{opacity:1} }
+  @keyframes popIn{
+    0%{ transform:scale(.7); opacity:0 }
+    60%{ transform:scale(1.04); opacity:1 }
+    100%{ transform:scale(1) }
+  }
+
+  .modal{
+    width:100%;
+    max-width:340px;
+    background:linear-gradient(180deg,#ffffff,#eaf7f0);
+    border-radius:26px;
+    padding:30px 22px 24px;
+    text-align:center;
+    color:var(--green-dark);
+    box-shadow:0 24px 60px rgba(0,0,0,.55), 0 0 0 6px rgba(229,185,60,.35);
+    animation:popIn .4s cubic-bezier(.2,.9,.3,1.3);
+    position:relative;
+    overflow:hidden;
+  }
+  .modal::before{
+    content:"";
+    position:absolute; top:-60px; left:-60px; right:-60px; height:130px;
+    background:radial-gradient(circle, rgba(229,185,60,.35), transparent 70%);
+  }
+  .modal .emoji{ font-size:46px; line-height:1; position:relative; }
+  .modal h2{
+    font-size:22px;
+    margin:12px 0 6px;
+    color:var(--green);
+    position:relative;
+  }
+  .modal .amount{
+    font-size:42px;
+    font-weight:800;
+    color:var(--green-dark);
+    margin:6px 0 2px;
+    letter-spacing:-1px;
+    position:relative;
+  }
+  .modal .unit{
+    font-size:15px;
+    color:#4d7f63;
+    margin-bottom:18px;
+    position:relative;
+  }
+  .modal button{
+    width:100%;
+    padding:14px;
+    font-family:inherit;
+    font-size:17px;
+    font-weight:800;
+    color:#fff;
+    background:linear-gradient(180deg,var(--green-light),var(--green));
+    border:none;
+    border-radius:16px;
+    cursor:pointer;
+    box-shadow:0 5px 0 var(--green-dark);
+    transition:transform .12s;
+    position:relative;
+  }
+  .modal button:active{ transform:translateY(4px); box-shadow:0 1px 0 var(--green-dark); }
+
+  footer{
+    margin-top:26px;
+    font-size:11px;
+    color:#7fb99a;
+    text-align:center;
+    line-height:1.7;
+  }
+</style>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="logo">
+      <span class="logo-sd">SD</span><span class="logo-cash">cash</span>
+    </div>
+    <p class="tagline">مسابقات سودانية · اربح بالجنيه السوداني</p>
+  </header>
+
+  <div class="balance">
+    <span>رصيدك الحالي</span>
+    <div>
+      <strong id="balance">0</strong><span class="cur">جنيه</span>
+    </div>
+  </div>
+
+  <div class="wheel-wrap">
+    <div class="wheel-ring"></div>
+    <canvas id="wheel"></canvas>
+    <div class="pointer"></div>
+    <div class="hub" id="hub">SD</div>
+  </div>
+
+  <button class="spin-btn" id="spinBtn">🎡 اِلْف العجلة</button>
+  <p class="hint">اضغط على الزر أو على دائرة SD لتبدأ الحظ</p>
+
+  <section class="history">
+    <h3>🏆 سجل الجوائز</h3>
+    <ul id="historyList">
+      <li class="empty">لا توجد جوائز بعد… جرّب حظك!</li>
+    </ul>
+  </section>
+
+  <footer>
+    جميع الجوائز بالجنيه السوداني (SDG)<br>
+    SD cash © 2025 — العب بمسؤولية
+  </footer>
+
+  <!-- نافذة الفوز -->
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <div class="emoji">🎉</div>
+      <h2>مبروك!</h2>
+      <div class="amount" id="prizeAmount">250,000</div>
+      <div class="unit">جنيه سوداني</div>
+      <button id="closeBtn">المتابعة</button>
+    </div>
+  </div>
+
+<script>
+/* ============================================================
+   SD cash — عجلة الحظ
+   ============================================================ */
+
+const prizes = [
+  { label: '250 ألف', value: 250000 },
+  { label: '200 ألف', value: 200000 },
+  { label: '150 ألف', value: 150000 },
+  { label: '100 ألف', value: 100000 },
+  { label: '50 ألف',  value: 50000  }
+];
+
+const SEG_COUNT = prizes.length;              // 5 قطاعات
+const SEG_ANGLE = (Math.PI * 2) / SEG_COUNT;  // 72 درجة لكل قطاع
+
+const canvas   = document.getElementById('wheel');
+const ctx      = canvas.getContext('2d');
+const spinBtn  = document.getElementById('spinBtn');
+const hub      = document.getElementById('hub');
+const overlay  = document.getElementById('overlay');
+const closeBtn = document.getElementById('closeBtn');
+const balEl    = document.getElementById('balance');
+const histEl   = document.getElementById('historyList');
+const prizeEl  = document.getElementById('prizeAmount');
+
+let size = 0;          // حجم الكانفاس (CSS px)
+let rotation = 0;      // زاوية دوران العجلة (راديان)
+let spinning = false;
+let balance = 0;
+
+/* ---------- تنسيق الأرقام ---------- */
+const nf = new Intl.NumberFormat('en-US');
+const fmt = n => nf.format(n);
+
+/* ---------- تهيئة الكانفاس ---------- */
+function setupCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  size = rect.width || 340;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = Math.round(size * dpr);
+  canvas.height = Math.round(size * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  drawWheel(rotation);
+}
+
+/* ---------- رسم العجلة ---------- */
+function drawWheel(rot) {
+  const w = size;
+  const cx = w / 2, cy = w / 2;
+  const R  = w / 2 - 2;          // نصف القطر الكلي
+  const r  = R - 8;              // نصف قطر القطاعات (داخل الإطار الذهبي)
+
+  ctx.clearRect(0, 0, w, w);
+
+  /* القطاعات */
+  for (let i = 0; i < SEG_COUNT; i++) {
+    const a0 = i * SEG_ANGLE - Math.PI / 2 + rot;
+    const a1 = a0 + SEG_ANGLE;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, a0, a1);
+    ctx.closePath();
+
+    // الأخضر والأبيض بالتناوب
+    ctx.fillStyle = (i % 2 === 0) ? '#0e7a3c' : '#ffffff';
+    ctx.fill();
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(7,80,39,.30)';
+    ctx.stroke();
+  }
+
+  /* النصوص والنقاط الذهبية */
+  for (let i = 0; i < SEG_COUNT; i++) {
+    const mid = i * SEG_ANGLE - Math.PI / 2 + rot + SEG_ANGLE / 2;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(mid);
+    ctx.direction = 'rtl';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // لون النص معاكس للون القطاع
+    ctx.fillStyle = (i % 2 === 0) ? '#ffffff' : '#0e7a3c';
+    ctx.font = `800 ${Math.round(w * 0.063)}px Tahoma, "Segoe UI", sans-serif`;
+    ctx.fillText(prizes[i].label, r * 0.65, 0);
+
+    // نقطة ذهبية قرب الحافة
+    ctx.beginPath();
+    ctx.arc(r * 0.90, 0, Math.max(3, w * 0.016), 0, Math.PI * 2);
+    ctx.fillStyle = '#e5b93c';
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  /* خطوط فاصلة بيضاء رقيقة على الإطار */
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,.55)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - 1, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* ---------- حساب القطاع الفائز ---------- */
+function getWinningIndex(rot) {
+  const deg = ((rot * 180 / Math.PI) % 360 + 360) % 360; // زاوية الدوران
+  const theta = (360 - deg) % 360;                       // ما يقف عند المؤشر
+  return Math.floor(theta / 72) % SEG_COUNT;
+}
+
+/* ---------- دوران العجلة ---------- */
+function spin() {
+  if (spinning) return;
+  spinning = true;
+  spinBtn.disabled = true;
+  spinBtn.textContent = '⏳ جاري الدوران…';
+  hideModal();
+
+  const startRot  = rotation;
+  const turns     = 5 + Math.random() * 3;        // 5 إلى 8 لفات كاملة
+  const total     = turns * Math.PI * 2 + Math.random() * Math.PI * 2;
+  const duration  = 5200;                          // مدة الدوران (ms)
+  const t0        = performance.now();
+
+  function frame(now) {
+    const p = Math.min((now - t0) / duration, 1);
+    // تخفيف تدريجي (ease-out quart) لتوقف ناعم
+    const eased = 1 - Math.pow(1 - p, 4);
+
+    rotation = startRot + total * eased;
+    drawWheel(rotation);
+
+    if (p < 1) {
+      requestAnimationFrame(frame);
+    } else {
+      rotation %= Math.PI * 2;
+      spinning = false;
+      spinBtn.disabled = false;
+      spinBtn.textContent = '🎡 اِلْف العجلة';
+      announceWin(getWinningIndex(rotation));
+    }
+  }
+
+  requestAnimationFrame(frame);
+}
+
+/* ---------- إعلان الفوز ---------- */
+function announceWin(index) {
+  const prize = prizes[index];
+
+  balance += prize.value;
+  balEl.textContent = fmt(balance);
+
+  prizeEl.textContent = fmt(prize.value);
+  overlay.classList.add('show');
+
+  // إضافة للسجل
+  const empty = histEl.querySelector('.empty');
+  if (empty) empty.remove();
+
+  const li = document.createElement('li');
+  const time = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+  li.innerHTML = `<span>${time}</span><b>+ ${fmt(prize.value)} جنيه</b>`;
+  histEl.prepend(li);
+
+  if (histEl.children.length > 6) histEl.lastElementChild.remove();
+}
+
+function hideModal() { overlay.classList.remove('show'); }
+
+/* ---------- الأحداث ---------- */
+spinBtn.addEventListener('click', spin);
+hub.addEventListener('click', spin);
+closeBtn.addEventListener('click', hideModal);
+overlay.addEventListener('click', e => { if (e.target === overlay) hideModal(); });
+
+window.addEventListener('resize', () => {
+  if (!spinning) setupCanvas();
+});
+
+/* ---------- التشغيل ---------- */
+window.addEventListener('load', () => {
+  setupCanvas();
+  // دوران بسيط جداً في البداية لإظهار العجلة
+  requestAnimationFrame(() => drawWheel(rotation));
+});
+</script>
+</body>
+</html>
